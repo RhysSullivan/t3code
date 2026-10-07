@@ -4228,11 +4228,11 @@ function runIdleThreadUnloadScenario(
     readonly providerSessionId: ProviderSessionId;
     readonly threadA: ThreadId;
     /** Starts run `ordinal` on a thread and returns once the provider accepted it. */
-    readonly startTurn: (threadId: ThreadId, ordinal: number) => Effect.Effect<void, unknown>;
+    readonly startTurn: (threadId: ThreadId, ordinal: number) => Effect.Effect<void>;
     /** Ends run `ordinal` on a thread and waits for the session to process it. */
-    readonly endTurn: (threadId: ThreadId, ordinal: number) => Effect.Effect<void, unknown>;
-    readonly resume: (threadId: ThreadId) => Effect.Effect<void, unknown>;
-  }) => Effect.Effect<void, unknown>,
+    readonly endTurn: (threadId: ThreadId, ordinal: number) => Effect.Effect<void>;
+    readonly resume: (threadId: ThreadId) => Effect.Effect<void>;
+  }) => Effect.Effect<void, ProviderSessionManager.ProviderSessionManagerV2Error>,
   options: { readonly hasPendingBackgroundWorkForThread?: Effect.Effect<boolean> } = {},
 ) {
   return Effect.gen(function* () {
@@ -4277,7 +4277,7 @@ function runIdleThreadUnloadScenario(
             modelSelection,
             runtimePolicy,
           })
-          .pipe(Effect.asVoid);
+          .pipe(Effect.asVoid, Effect.orDie);
       const startTurn = (threadId: ThreadId, ordinal: number) =>
         Effect.gen(function* () {
           yield* resume(threadId);
@@ -4301,7 +4301,7 @@ function runIdleThreadUnloadScenario(
             modelSelection,
             runtimePolicy,
           });
-        });
+        }).pipe(Effect.orDie);
       const subscribe = runtime.subscribeEvents;
       assert.isDefined(subscribe);
       const endTurn = (threadId: ThreadId, ordinal: number) =>
@@ -4332,7 +4332,7 @@ function runIdleThreadUnloadScenario(
             });
             yield* Fiber.join(received);
           }),
-        );
+        ).pipe(Effect.orDie);
 
       // B's running turn keeps the shared runtime itself busy throughout.
       yield* startTurn(threadB, 1);
